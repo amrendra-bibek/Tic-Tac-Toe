@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tic Tac Toe Pro</title>
+<style>
+[data-theme="dark"]{--bg:#0f0f1a;--surface:#1a1a2e;--card:#16213e;--border:#222;--text:#eaeaea;--muted:#888;--sub:#444;--x:#e94560;--o:#00d4ff}
+[data-theme="light"]{--bg:#f0f4ff;--surface:#ffffff;--card:#e8edf8;--border:#d0d8ee;--text:#1a1a2e;--muted:#666;--sub:#bbb;--x:#e94560;--o:#0088cc}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--cell:min(27vw,125px);--gap:10px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;transition:background .4s,color .3s}
+
+/* ADS */
+.ad{background:var(--card);border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;position:relative;overflow:hidden;transition:background .4s}
+.ad::before{content:'AD';position:absolute;top:4px;left:8px;font-size:9px;color:var(--sub);border:1px solid var(--border);border-radius:3px;padding:0 3px}
+.ad-top{width:min(728px,96%);height:88px;margin:10px auto}
+.ad-bot{width:min(728px,96%);height:88px;margin:10px auto 20px}
+.ad-side{width:155px;min-height:580px;position:fixed;top:50%;transform:translateY(-50%);font-size:11px;flex-direction:column;gap:6px}
+.ad-left{left:10px}.ad-right{right:10px}
+@media(max-width:900px){.ad-side{display:none}}
+
+/* LAYOUT */
+.wrap{width:100%;max-width:520px;padding:0 12px 50px;display:flex;flex-direction:column;align-items:center;gap:14px}
+
+/* TOPBAR */
+.topbar{width:100%;display:flex;justify-content:space-between;align-items:center;padding-top:14px;gap:8px}
+.icon-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.icon-btn:hover{border-color:var(--x);transform:scale(1.1)}
+.topbar-left{display:flex;gap:8px}
+
+/* HEADER */
+h1{font-size:clamp(1.5rem,5vw,2.4rem);font-weight:800;background:linear-gradient(90deg,var(--x),var(--o));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;text-align:center;flex:1}
+.sub{font-size:12px;color:var(--muted);text-align:center;margin-top:-6px}
+
+/* PILLS */
+.pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.pill{padding:7px 16px;border:2px solid var(--border);border-radius:40px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.pill:hover{border-color:var(--x);color:var(--text)}
+.pill.on{border-color:var(--x);background:var(--x);color:#fff;box-shadow:0 0 16px rgba(233,69,96,.4)}
+.dpill{font-size:12px;padding:5px 12px}
+.dpill.on{border-color:var(--o);background:var(--o);color:#000;box-shadow:none}
+.dpill:hover{border-color:var(--o)}
+
+/* BARS */
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.hidden{display:none!important}
+
+/* SCOREBOARD */
+.scores{display:flex;gap:10px;width:100%;justify-content:center}
+.sc{flex:1;max-width:145px;background:var(--card);border-radius:14px;padding:12px 8px;text-align:center;border:1.5px solid var(--border);transition:border-color .3s,box-shadow .3s,background .4s}
+.sc.glowX{border-color:var(--x);box-shadow:0 0 14px rgba(233,69,96,.3)}
+.sc.glowO{border-color:var(--o);box-shadow:0 0 14px rgba(0,212,255,.3)}
+.sc .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.sc .sym{font-size:22px;font-weight:900;margin:4px 0}
+.sc .val{font-size:24px;font-weight:800}
+.sc.xc .sym{color:var(--x)}.sc.oc .sym{color:var(--o)}.sc.tc .sym{color:var(--muted);font-size:16px}.sc.tc .val{font-size:20px}
+
+/* TIMER */
+#timerBox{font-size:20px;font-weight:800;color:var(--x)}
+#timerBox.urgent{animation:pulse .5s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+
+/* STATUS */
+#status{font-size:16px;font-weight:600;text-align:center;min-height:24px}
+
+/* BOARD */
+.board{display:grid;grid-template-columns:repeat(3,var(--cell));grid-template-rows:repeat(3,var(--cell));gap:var(--gap)}
+.cell{width:var(--cell);height:var(--cell);background:var(--card);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell)*.48);font-weight:900;cursor:pointer;border:2px solid var(--border);user-select:none;transition:background .2s,transform .15s,border-color .2s,box-shadow .2s;position:relative;overflow:hidden}
+.cell::after{content:'';position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.07) 0%,transparent 70%);opacity:0;transition:opacity .2s}
+.cell:hover:not(.taken)::after{opacity:1}
+.cell:hover:not(.taken){background:var(--surface);border-color:var(--muted);transform:scale(1.05)}
+.cell.taken{cursor:default}
+.cell.xc{color:var(--x);border-color:rgba(233,69,96,.3)}
+.cell.oc{color:var(--o);border-color:rgba(0,212,255,.3)}
+.cell.placed{animation:placeIn .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes placeIn{from{transform:scale(0) rotate(-18deg)}to{transform:scale(1)}}
+.cell.win{animation:winPop .4s ease forwards}
+.cell.win.xc{background:rgba(233,69,96,.18);border-color:var(--x);box-shadow:0 0 20px rgba(233,69,96,.45)}
+.cell.win.oc{background:rgba(0,212,255,.18);border-color:var(--o);box-shadow:0 0 20px rgba(0,212,255,.45)}
+@keyframes winPop{0%{transform:scale(.8) rotate(-6deg)}55%{transform:scale(1.2) rotate(3deg)}100%{transform:scale(1)}}
+
+/* CONFETTI */
+.cp{position:fixed;width:9px;height:9px;border-radius:2px;pointer-events:none;z-index:999;animation:cfall linear forwards}
+@keyframes cfall{0%{opacity:1;transform:translateY(-10px) rotate(0)}100%{opacity:0;transform:translateY(110vh) rotate(800deg)}}
+
+/* SYM BTNS */
+.sbtn{width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:transparent;font-size:19px;font-weight:900;cursor:pointer;transition:all .2s}
+.sbtn.xb{color:var(--x)}.sbtn.ob{color:var(--o)}
+.sbtn.on{border-color:currentColor;background:rgba(128,128,128,.1)}
+
+/* CONTROLS */
+.btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{padding:10px 24px;border-radius:40px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.4px}
+.btn-r{background:linear-gradient(135deg,var(--x),#c0392b);color:#fff;box-shadow:0 4px 16px rgba(233,69,96,.35)}
+.btn-r:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(233,69,96,.55)}
+.btn-g{background:var(--card);color:var(--muted);border:1.5px solid var(--border)}
+.btn-g:hover{color:var(--text);border-color:var(--muted)}
+
+/* LEADERBOARD PANEL */
+.panel{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(8px)}
+.panel.hidden{display:none}
+.panel-box{background:var(--surface);border:1.5px solid var(--border);border-radius:22px;padding:26px 28px;width:min(420px,94%);max-height:88vh;overflow-y:auto;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.panel-head h2{font-size:20px;font-weight:800}
+.xbtn{width:32px;height:32px;border-radius:50%;border:none;background:var(--card);color:var(--muted);font-size:15px;cursor:pointer;transition:all .2s}
+.xbtn:hover{color:var(--text)}
+.lb-tabs{display:flex;gap:8px;margin-bottom:14px}
+.lb-tab{padding:5px 14px;border-radius:30px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s}
+.lb-tab.on{background:var(--x);border-color:var(--x);color:#fff}
+.lb-empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 0}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px;background:var(--card);border:1px solid var(--border)}
+.lb-rank{font-size:18px;width:28px;text-align:center}
+.lb-info{flex:1}
+.lb-name{font-size:14px;font-weight:700}
+.lb-detail{font-size:11px;color:var(--muted);margin-top:1px}
+.lb-score{font-size:18px;font-weight:800;color:var(--x)}
+
+/* OVERLAY */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center}
+.ov.show{display:flex}
+.ovbox{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;padding:28px 32px;text-align:center;animation:slideUp .35s ease;max-width:340px;width:92%}
+#ovEmoji{font-size:52px;margin-bottom:10px}
+#ovTitle{font-size:25px;font-weight:800;margin-bottom:5px}
+#ovSub{font-size:13px;color:var(--muted);margin-bottom:12px}
+.name-row{display:flex;gap:8px;margin:10px 0}
+.ni{flex:1;padding:8px 14px;border-radius:30px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;transition:border-color .2s}
+.ni:focus{border-color:var(--x)}
+.ov-btns{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface);border:1.5px solid var(--border);color:var(--text);padding:9px 22px;border-radius:30px;font-size:13px;font-weight:600;z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+footer{font-size:11px;color:var(--sub);text-align:center;padding:8px}
+</style>
+</head>
+<body>
+
+<!-- ██ LEFT SIDEBAR AD ██ -->
+<!-- HOW TO ADD REAL ADS: Replace div contents with your ad network snippet
+     Google AdSense  → https://adsense.google.com
+     Media.net       → https://www.media.net
+     PropellerAds    → https://propellerads.com   -->
+<div class="ad ad-side ad-left">📢 Your Ad<br><small>160×600</small></div>
+<div class="ad ad-side ad-right">📢 Your Ad<br><small>160×600</small></div>
+
+<!-- ██ TOP BANNER AD ██ -->
+<div class="ad ad-top">📢 Top Banner · 728×90 — Replace with your ad network code here</div>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+      <button class="icon-btn" id="soundBtn" title="Toggle sound">🔊</button>
+    </div>
+    <h1>✦ TTT Pro</h1>
+    <button class="icon-btn" id="lbBtn" title="Leaderboard">🏆</button>
+  </div>
+  <p class="sub">Classic game · Multiple modes · Endless fun</p>
+
+  <div class="pills" id="modePills">
+    <button class="pill on" data-mode="pvc">🤖 vs AI</button>
+    <button class="pill" data-mode="pvp">👥 2 Players</button>
+    <button class="pill" data-mode="timed">⏱ Timed</button>
+  </div>
+
+  <div class="bar" id="diffBar">
+    <span style="font-size:12px;color:var(--muted)">Difficulty:</span>
+    <button class="pill dpill" data-diff="easy">😊 Easy</button>
+    <button class="pill dpill on" data-diff="medium">🎯 Medium</button>
+    <button class="pill dpill" data-diff="hard">🔥 Hard</button>
+    <button class="pill dpill" data-diff="unbeatable">💀 Unbeatable</button>
+  </div>
+
+  <div class="bar" id="symBar">
+    <span style="font-size:13px;color:var(--muted)">Play as:</span>
+    <button class="sbtn xb on" data-sym="X">✕</button>
+    <button class="sbtn ob" data-sym="O">○</button>
+  </div>
+
+  <div class="scores">
+    <div class="sc xc glowX" id="cX"><div class="lbl" id="lX">You</div><div class="sym">✕</div><div class="val" id="sX">0</div></div>
+    <div class="sc tc"><div class="lbl">Draws</div><div class="sym">🤝</div><div class="val" id="sT">0</div></div>
+    <div class="sc oc" id="cO"><div class="lbl" id="lO">AI</div><div class="sym">○</div><div class="val" id="sO">0</div></div>
+  </div>
+
+  <div id="timerBox" class="hidden">⏱ <span id="tv">10</span>s</div>
+  <div id="status">Your turn — <span style="color:var(--x)">✕</span></div>
+
+  <div class="board" id="board">
+    <div class="cell" data-i="0"></div><div class="cell" data-i="1"></div><div class="cell" data-i="2"></div>
+    <div class="cell" data-i="3"></div><div class="cell" data-i="4"></div><div class="cell" data-i="5"></div>
+    <div class="cell" data-i="6"></div><div class="cell" data-i="7"></div><div class="cell" data-i="8"></div>
+  </div>
+
+  <div class="btns">
+    <button class="btn btn-r" id="newBtn">▶ New Game</button>
+    <button class="btn btn-g" id="resetBtn">↺ Reset Score</button>
+  </div>
+</div>
+
+<!-- ██ BOTTOM BANNER AD ██ -->
+<div class="ad ad-bot">📢 Bottom Banner · 728×90 — Replace with your ad network code here</div>
+<footer>© 2026 Tic Tac Toe Pro · All rights reserved</footer>
+
+<!-- RESULT OVERLAY -->
+<div class="ov" id="ov">
+  <div class="ovbox">
+    <div id="ovEmoji">🎉</div>
+    <div id="ovTitle">You Win!</div>
+    <div id="ovSub">Save your score!</div>
+    <div class="name-row" id="nameRow">
+      <input class="ni" id="nameInput" maxlength="16" placeholder="Your name…">
+      <button class="btn btn-r" id="saveBtn" style="padding:8px 14px;font-size:13px">💾</button>
+    </div>
+    <!-- ██ INLINE AD IN OVERLAY — replace content below ██ -->
+    <div class="ad" style="height:50px;margin:10px 0;font-size:11px">📢 Inline Ad · 320×50 — Replace with ad code</div>
+    <div class="ov-btns">
+      <button class="btn btn-r" id="paBtn">▶ Play Again</button>
+      <button class="btn btn-g" id="clBtn">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD PANEL -->
+<div class="panel hidden" id="lbPanel">
+  <div class="panel-box">
+    <div class="panel-head">
+      <h2>🏆 Leaderboard</h2>
+      <button class="xbtn" id="lbClose">✕</button>
+    </div>
+    <div class="lb-tabs">
+      <button class="lb-tab on" data-lb="wins">Most Wins</button>
+      <button class="lb-tab" data-lb="streak">Best Streak</button>
+      <button class="lb-tab" data-lb="recent">Recent</button>
+    </div>
+    <div id="lbContent"></div>
+    <button class="btn btn-g" id="lbClear" style="width:100%;margin-top:14px">🗑 Clear All</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const $=id=>document.getElementById(id);
+const cells=[...document.querySelectorAll('.cell')];
+
+let board,cur,over,ai_on,tmr,tl;
+let scores={X:0,O:0,T:0},mode='pvc',diff='medium',p1='X';
+let soundOn=true,theme='dark',streak=0,lastW=null,pendingW=null,lbSort='wins';
+const LB_KEY='ttt_pro_v3';
+
+/* ─── AUDIO ─── */
+let actx=null;
+const ctx=()=>{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx};
+function tone(f,d,t='sine',v=.16){
+  if(!soundOn)return;
+  try{const c=ctx(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type=t;o.frequency.value=f;
+    g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+    o.start();o.stop(c.currentTime+d)}catch(e){}}
+const sfx={
+  place:x=>tone(x?440:330,.1,'triangle',.14),
+  win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.25,'sine',.2),i*85)),
+  draw:()=>{tone(300,.3,'sawtooth',.1);setTimeout(()=>tone(250,.4,'sawtooth',.08),150)},
+  lose:()=>{tone(220,.25,'sawtooth',.14);setTimeout(()=>tone(180,.5,'sawtooth',.1),200)},
+  tick:()=>tone(880,.06,'square',.07),
+  urgent:()=>tone(1300,.08,'square',.1),
+  click:()=>tone(600,.06,'sine',.06)
+};
+
+/* ─── THEME ─── */
+$('themeBtn').onclick=()=>{
+  theme=theme==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',theme);
+  $('themeBtn').textContent=theme==='dark'?'🌙':'☀️';
+  sfx.click();toast(theme==='dark'?'Dark mode 🌙':'Light mode ☀️');
+};
+
+/* ─── SOUND ─── */
+$('soundBtn').onclick=()=>{
+  soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';
+  toast(soundOn?'Sound on 🔊':'Sound off 🔇');
+};
+
+/* ─── TOAST ─── */
+let toastT;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+
+/* ─── CONFETTI ─── */
+function confetti(){
+  const cols=['#e94560','#00d4ff','#ffd700','#ff6b9d','#7fff7f','#ff9f43','#a29bfe'];
+  for(let i=0;i<90;i++)setTimeout(()=>{
+    const el=document.createElement('div');el.className='cp';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${cols[~~(Math.random()*cols.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-duration:${1.3+Math.random()*1.5}s;border-radius:${Math.random()>.5?'50%':'2px'}`;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),3500);
+  },i*15);
+}
+
+/* ─── GAME ─── */
+function init(){
+  board=Array(9).fill(null);cur='X';over=false;ai_on=false;
+  clearInterval(tmr);$('timerBox').classList.add('hidden');$('timerBox').classList.remove('urgent');
+  cells.forEach(c=>{c.textContent='';c.className='cell'});
+  updSt();updSc();
+  if(mode==='timed')startTimer();
+  if(mode==='pvc'&&p1==='O')setTimeout(aiMove,550);
+}
+
+function startTimer(){
+  $('timerBox').classList.remove('hidden');tl=10;$('tv').textContent=tl;
+  tmr=setInterval(()=>{
+    tl--;$('tv').textContent=tl;
+    if(tl<=3){$('timerBox').classList.add('urgent');sfx.urgent()}else sfx.tick();
+    if(tl<=0){
+      clearInterval(tmr);$('timerBox').classList.remove('urgent');
+      cur=cur==='X'?'O':'X';updSt();startTimer();
+      if(mode==='pvc'&&cur!==p1){ai_on=true;setTimeout(()=>{aiMove();ai_on=false;clearInterval(tmr);startTimer()},500)}
+    }
+  },1000);
+}
+
+function place(i){
+  board[i]=cur;
+  const c=cells[i];
+  c.textContent=cur==='X'?'✕':'○';
+  c.classList.add('taken',cur==='X'?'xc':'oc','placed');
+  setTimeout(()=>c.classList.remove('placed'),300);
+  sfx.place(cur==='X');
+  const r=chk();
+  if(r){endGame(r);return}
+  cur=cur==='X'?'O':'X';updSt();
+}
+
+cells.forEach(c=>c.addEventListener('click',()=>{
+  const i=+c.dataset.i;
+  if(over||board[i]||ai_on)return;
+  if(mode==='pvc'&&cur!==p1)return;
+  clearInterval(tmr);place(i);
+  if(mode==='pvc'&&!over){
+    ai_on=true;updSt();
+    setTimeout(()=>{aiMove();ai_on=false;if(!over&&mode==='timed')startTimer()},420+Math.random()*280);
+  }else if(!over&&mode==='timed')startTimer();
+}));
+
+function chk(){
+  for(const[a,b,c]of WINS)if(board[a]&&board[a]===board[b]&&board[a]===board[c])return{w:board[a],line:[a,b,c]};
+  if(board.every(Boolean))return{w:null};
+  return null;
+}
+
+function endGame({w,line}){
+  over=true;clearInterval(tmr);$('timerBox').classList.add('hidden');$('timerBox').classList.remove('urgent');
+  if(w){
+    scores[w]++;
+    line.forEach(i=>cells[i].classList.add('win'));
+    streak=w===lastW?streak+1:1;lastW=w;
+    const humanWin=(mode==='pvp')||(mode==='pvc'&&w===p1)||(mode==='timed'&&w===p1);
+    if(humanWin){sfx.win();confetti()}
+    else if(mode==='pvc')sfx.lose();
+    else{sfx.win();confetti()}
+  }else{scores.T++;streak=0;lastW=null;sfx.draw()}
+  updSc();setTimeout(()=>showOv(w),450);
+}
+
+function updSt(){
+  if(over)return;
+  if(ai_on){$('status').innerHTML='🤖 AI is thinking…';return}
+  const s=cur==='X'?'✕':'○',cl=cur==='X'?'var(--x)':'var(--o)';
+  const who=mode==='pvc'?(cur===p1?'Your turn':'AI\'s turn'):`Player ${cur==='X'?1:2}'s turn`;
+  $('status').innerHTML=`${who} — <span style="color:${cl}">${s}</span>`;
+  $('cX').classList.toggle('glowX',cur==='X');$('cX').classList.remove('glowO');
+  $('cO').classList.toggle('glowO',cur==='O');$('cO').classList.remove('glowX');
+}
+
+function updSc(){
+  $('sX').textContent=scores.X;$('sO').textContent=scores.O;$('sT').textContent=scores.T;
+  $('lX').textContent=mode==='pvc'?(p1==='X'?'You':'AI'):'Player 1';
+  $('lO').textContent=mode==='pvc'?(p1==='O'?'You':'AI'):'Player 2';
+}
+
+/* ─── OVERLAY ─── */
+function showOv(w){
+  pendingW=w;
+  if(w){
+    $('ovEmoji').textContent='🎉';
+    const humanWin=(mode==='pvp')||(mode==='pvc'&&w===p1)||(mode==='timed');
+    $('ovTitle').textContent=mode==='pvc'?(w===p1?'You Win! 🏆':'AI Wins! 🤖'):`Player ${w==='X'?1:2} Wins! 🏆`;
+    $('ovSub').textContent=humanWin?`🔥 Streak: ${streak} — Save your score!`:'Better luck next time!';
+    $('nameRow').classList.toggle('hidden',!humanWin);
+  }else{
+    $('ovEmoji').textContent='🤝';$('ovTitle').textContent="It's a Draw!";
+    $('ovSub').textContent='Perfectly matched — rematch?';$('nameRow').classList.add('hidden');
+  }
+  $('ov').classList.add('show');
+}
+
+$('saveBtn').onclick=()=>{
+  const name=$('nameInput').value.trim()||'Anonymous';
+  const lb=getLB();
+  lb.unshift({name,wins:scores[pendingW]||0,streak,mode,diff:mode==='pvc'?diff:'—',date:new Date().toLocaleDateString(),ts:Date.now()});
+  if(lb.length>60)lb.pop();saveLB(lb);
+  sfx.win();toast(`${name} saved! 🏆`);$('nameInput').value='';$('nameRow').classList.add('hidden');
+};
+
+$('paBtn').onclick=()=>{$('ov').classList.remove('show');init()};
+$('clBtn').onclick=()=>{$('ov').classList.remove('show');$('status').textContent='Press New Game!'};
+$('newBtn').onclick=()=>{sfx.click();init()};
+$('resetBtn').onclick=()=>{sfx.click();scores={X:0,O:0,T:0};streak=0;init();toast('Scores reset!')};
+
+/* ─── MODES ─── */
+document.querySelectorAll('#modePills .pill').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#modePills .pill').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');mode=b.dataset.mode;sfx.click();
+  $('diffBar').classList.toggle('hidden',mode!=='pvc');
+  $('symBar').classList.toggle('hidden',mode!=='pvc');
+  scores={X:0,O:0,T:0};init();
+}));
+document.querySelectorAll('.dpill').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.dpill').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');diff=b.dataset.diff;sfx.click();init();
+}));
+document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.sbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');p1=b.dataset.sym;sfx.click();scores={X:0,O:0,T:0};init();
+}));
+
+/* ─── LEADERBOARD ─── */
+const getLB=()=>{try{return JSON.parse(localStorage.getItem(LB_KEY))||[]}catch{return[]}};
+const saveLB=d=>localStorage.setItem(LB_KEY,JSON.stringify(d));
+const MEDALS=['🥇','🥈','🥉'];
+
+$('lbBtn').onclick=()=>{sfx.click();$('lbPanel').classList.remove('hidden');renderLB()};
+$('lbClose').onclick=()=>{sfx.click();$('lbPanel').classList.add('hidden')};
+$('lbPanel').addEventListener('click',e=>{if(e.target===$('lbPanel'))$('lbPanel').classList.add('hidden')});
+document.querySelectorAll('.lb-tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.lb-tab').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');lbSort=b.dataset.lb;renderLB();
+}));
+$('lbClear').onclick=()=>{if(confirm('Clear leaderboard?')){saveLB([]);renderLB();toast('Cleared!')}};
+
+function renderLB(){
+  let d=getLB();
+  if(lbSort==='wins')d.sort((a,b)=>b.wins-a.wins);
+  else if(lbSort==='streak')d.sort((a,b)=>b.streak-a.streak);
+  else d.sort((a,b)=>b.ts-a.ts);
+  const el=$('lbContent');
+  if(!d.length){el.innerHTML='<div class="lb-empty">No scores yet!<br>Win a game and save your name 🏆</div>';return}
+  el.innerHTML=d.slice(0,20).map((e,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank">${MEDALS[i]||'#'+(i+1)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${esc(e.name)}</div>
+        <div class="lb-detail">${e.mode==='pvc'?'vs AI · '+e.diff:'2 Players'} · ${e.date}</div>
+      </div>
+      <div class="lb-score">${lbSort==='streak'?'🔥'+e.streak:'🏆'+e.wins}</div>
+    </div>`).join('');
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+/* ─── AI ─── */
+function aiMove(){
+  if(over)return;
+  const as=p1==='X'?'O':'X';
+  const idx=diff==='easy'?easy():diff==='medium'?medium(as):diff==='hard'?hard(as):best(as);
+  if(idx!=null&&board[idx]===null)place(idx);
+}
+function easy(){const e=board.map((v,i)=>v===null?i:null).filter(v=>v!==null);return e[~~(Math.random()*e.length)]}
+function medium(s){return winMove(s)??winMove(s==='X'?'O':'X')??easy()}
+function hard(s){return winMove(s)??winMove(s==='X'?'O':'X')??(board[4]===null?4:null)??corner()??easy()}
+function best(s){return mm([...board],s,s).i}
+function winMove(s){
+  for(const[a,b,c]of WINS){
+    const e=[a,b,c].filter(i=>board[i]===null),f=[board[a],board[b],board[c]].filter(v=>v===s);
+    if(f.length===2&&e.length===1)return e[0];
+  }return null;
+}
+function corner(){const c=[0,2,6,8].filter(i=>board[i]===null);return c.length?c[~~(Math.random()*c.length)]:null}
+function mm(b,as,c,d=0){
+  for(const[a,bb,cc]of WINS)if(b[a]&&b[a]===b[bb]&&b[a]===b[cc])return{s:b[a]===as?10-d:d-10};
+  if(b.every(Boolean))return{s:0};
+  const max=c===as,moves=[];
+  b.forEach((v,i)=>{if(v!==null)return;const nb=[...b];nb[i]=c;moves.push({i,s:mm(nb,as,c==='X'?'O':'X',d+1).s})});
+  moves.sort((a,z)=>max?z.s-a.s:a.s-z.s);
+  return moves[0];
+}
+
+init();
+</script>
+</body>
+</html>
